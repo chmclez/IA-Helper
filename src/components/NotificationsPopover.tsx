@@ -3,10 +3,10 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+} from "../components/ui/popover";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 
 interface Notification {
   id: string;
@@ -17,32 +17,7 @@ interface Notification {
   read: boolean;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "IA Draft Due Soon",
-    message: "Physics HL Draft 1 is due in 3 days (Dec 15)",
-    type: "reminder",
-    timestamp: "2 hours ago",
-    read: false
-  },
-  {
-    id: "2",
-    title: "Milestone Completed",
-    message: "Math AA HL Research phase marked complete",
-    type: "milestone",
-    timestamp: "1 day ago",
-    read: false
-  },
-  {
-    id: "3",
-    title: "New Past Papers Available",
-    message: "2024 November Chemistry papers uploaded",
-    type: "info",
-    timestamp: "3 days ago",
-    read: true
-  }
-];
+const mockNotifications: Notification[] = []
 
 export function NotificationsPopover() {
   const unreadCount = mockNotifications.filter(n => !n.read).length;

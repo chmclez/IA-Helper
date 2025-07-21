@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import Confetti from 'react-confetti';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
+import { Calendar } from "../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { Progress } from "../components/ui/progress";
 import { 
   ArrowLeft, 
   Calendar as CalendarIcon, 
   Upload, 
   FileText, 
+  Download,
   CheckCircle, 
   Circle, 
   Info,
@@ -378,7 +379,10 @@ export const IAWorkspace = ({ subject, onBack }: IAWorkspaceProps) => {
                   <div className="space-y-4">
                     <label className="text-sm font-medium block">Documents & Files</label>
                     
-                    <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                     <div
+                      className="border-2 border-dashed border-muted rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                      onClick={() => document.getElementById(`file-${milestone.id}`)?.click()}
+                    >
                       <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground mb-1">
                         Drop files here or click to upload
@@ -386,6 +390,19 @@ export const IAWorkspace = ({ subject, onBack }: IAWorkspaceProps) => {
                       <p className="text-xs text-muted-foreground">
                         PDF, DOCX, XLSX supported
                       </p>
+                      <input
+                        id={`file-${milestone.id}`}
+                        type="file"
+                        accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        multiple
+                        className="hidden"
+                        onChange={e => {
+                          const files = Array.from(e.target.files || []);
+                          updateMilestone(milestone.id, {
+                            files: [...milestone.files, ...files]
+                          });
+                        }}
+                      />
                     </div>
 
                     {/* File list */}
@@ -398,9 +415,33 @@ export const IAWorkspace = ({ subject, onBack }: IAWorkspaceProps) => {
                           >
                             <FileText size={16} className="text-primary" />
                             <span className="text-sm flex-1">{file.name}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                             <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() =>
+                                updateMilestone(milestone.id, {
+                                  files: milestone.files.filter((_, i) => i !== fileIndex)
+                                })
+                              }
+                            >
                               <span className="sr-only">Remove file</span>
                               ×
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = URL.createObjectURL(file);
+                                link.download = file.name;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                            >
+                              <Download size={14} />
                             </Button>
                           </div>
                         ))}

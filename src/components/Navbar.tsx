@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Search, User, BookOpen, FileText, Settings, Target, Moon, Sun, LogOut } from "lucide-react";
+import { ToolsWidget } from "@/components/ToolsWidget";
 import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -20,7 +21,7 @@ export const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -83,7 +84,7 @@ export const Navbar = () => {
             onClick={toggleTheme}
             className="hover:bg-muted transition-colors"
           >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </Button>
 
           {/* Notifications */}

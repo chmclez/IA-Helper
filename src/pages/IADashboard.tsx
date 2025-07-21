@@ -1,30 +1,45 @@
-import { useState } from "react";
-import { Navbar } from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { Navbar } from "../components/Navbar";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Progress } from "../components/ui/progress";
+import { Badge } from "../components/ui/badge";
 import { Plus, Calendar, BookOpen, Target, Trophy, Clock } from "lucide-react";
-import { SubjectSelectionModal } from "@/components/SubjectSelectionModal";
-import { IAWorkspace } from "@/components/IAWorkspace";
-import { CalendarView } from "@/components/CalendarView";
+import { SubjectSelectionModal } from "../components/SubjectSelectionModal";
+import { IAWorkspace } from "../components/IAWorkspace";
+import { CalendarView } from "../components/CalendarView";
 import { availableSubjects } from "@/data/subjects";
+import { useAuth } from "@/context/AuthContext";
 
 export const IADashboard = () => {
-  const [selectedSubjects, setSelectedSubjects] = useState(availableSubjects.slice(0, 3));
+  const { user, updateUserSubjects } = useAuth();
+  const [selectedSubjects, setSelectedSubjects] = useState<typeof availableSubjects>([]);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
 
+  useEffect(() => {
+    if (user?.subjects) {
+      const userSelected = availableSubjects.filter(s => user.subjects?.includes(s.id));
+      setSelectedSubjects(userSelected);
+    } else {
+      setSelectedSubjects([]);
+    }
+  }, [user]);
+  
   const addSubject = (subjectId: string) => {
     const subject = availableSubjects.find(s => s.id === subjectId);
     if (subject && !selectedSubjects.find(s => s.id === subjectId)) {
-      setSelectedSubjects([...selectedSubjects, subject]);
+      const newSubjects = [...selectedSubjects, subject];
+      setSelectedSubjects(newSubjects);
+      updateUserSubjects(newSubjects.map(s => s.id));
     }
   };
 
   const removeSubject = (subjectId: string) => {
-    setSelectedSubjects(selectedSubjects.filter(s => s.id !== subjectId));
+    const newSubjects = selectedSubjects.filter(s => s.id !== subjectId);
+    setSelectedSubjects(newSubjects);
+    updateUserSubjects(newSubjects.map(s => s.id));
   };
 
   const getProgressStatus = (progress: number) => {

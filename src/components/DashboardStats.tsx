@@ -1,12 +1,30 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { TrendingUp, Clock, CheckCircle, AlertTriangle } from "lucide-react";
-
+import { useAuth } from "@/context/AuthContext";
+import { availableSubjects } from "@/data/subjects";
+import { useEffect } from "react";
 export const DashboardStats = () => {
+  const { user, updateProgress } = useAuth();
+  const userSubjects = user?.subjects
+    ? availableSubjects.filter(s => user.subjects?.includes(s.id))
+    : [];
+
+  const overallProgress =
+    userSubjects.length > 0
+      ? Math.round(
+          userSubjects.reduce((acc, s) => acc + (s.progress || 0), 0) /
+            userSubjects.length
+        )
+      : 0;
+ // store overall progress so other components can access it
+  useEffect(() => {
+    updateProgress(overallProgress);
+  }, [overallProgress, updateProgress]);
+
   const stats = [
     {
       title: "Overall Progress",
-      value: "68%",
+      value: '${overallProgress}%',
       description: "Across all subjects",
       icon: TrendingUp,
       color: "primary",
@@ -14,7 +32,7 @@ export const DashboardStats = () => {
     },
     {
       title: "Due This Week",
-      value: "3",
+      value: "0",
       description: "Upcoming milestones",
       icon: Clock,
       color: "warning",
@@ -22,7 +40,7 @@ export const DashboardStats = () => {
     },
     {
       title: "Completed",
-      value: "12",
+      value: "0",
       description: "IA milestones",
       icon: CheckCircle,
       color: "secondary",
@@ -30,7 +48,7 @@ export const DashboardStats = () => {
     },
     {
       title: "Needs Attention",
-      value: "2",
+      value: "0",
       description: "Overdue tasks",
       icon: AlertTriangle,
       color: "destructive",

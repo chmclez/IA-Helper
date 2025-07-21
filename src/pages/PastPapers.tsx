@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { 
   FolderOpen, 
   FileText, 
@@ -13,7 +21,7 @@ import {
   Plus,
   Upload
 } from "lucide-react";
-import { availableSubjects } from "@/data/subjects";
+import { availableSubjects } from "../data/subjects";
 
 interface PaperFile {
   id: string;
@@ -122,6 +130,31 @@ export function PastPapers() {
   const [selectedYear, setSelectedYear] = useState<number>(0);
   const [selectedSession, setSelectedSession] = useState<string>("");
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>(["Past Papers"]);
+  const [folders, setFolders] = useState<string[]>([]);
+  const [uploadedPapers, setUploadedPapers] = useState<PaperFile[]>([]);
+    const [showFolderDialog, setShowFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // load stored data
+  useEffect(() => {
+    const storedFolders = localStorage.getItem("ia_helper_folders");
+    const storedPapers = localStorage.getItem("ia_helper_papers");
+    if (storedFolders) setFolders(JSON.parse(storedFolders));
+    if (storedPapers) setUploadedPapers(JSON.parse(storedPapers));
+  }, []);
+
+  // persist data
+  useEffect(() => {
+    localStorage.setItem("ia_helper_folders", JSON.stringify(folders));
+  }, [folders]);
+
+  useEffect(() => {
+    localStorage.setItem("ia_helper_papers", JSON.stringify(uploadedPapers));
+  }, [uploadedPapers]);
 
   // Get user's subjects
   const userSubjects = user?.subjects ? 
@@ -162,16 +195,28 @@ export function PastPapers() {
   };
 
   const handleDownload = (paper: PaperFile) => {
-    // Simulate download
-    alert(`Downloading: ${paper.name}`);
+const link = document.createElement("a");
+    link.href = paper.downloadUrl;
+    link.download = `${paper.paper}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleAddFolder = () => {
-    alert('Add folder functionality - Admin only feature');
+        setNewFolderName("");
+    setShowFolderDialog(true);
+  };
+
+  const handleDeletePaper = (id: string) => {
+    setUploadedPapers(uploadedPapers.filter(p => p.id !== id));
   };
 
   const handleUploadPDF = () => {
-    alert('Upload PDF functionality - Admin only feature');
+   if (!selectedSubject || !selectedYear || !selectedSession) return;
+        setUploadName("");
+    setUploadFile(null);
+    setShowUploadDialog(true);
   };
 
   return (
@@ -232,7 +277,7 @@ export function PastPapers() {
         {currentView === "subjects" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {userSubjects.map((subject, index) => (
-              <Card 
+              <Card
                 key={subject.id}
                 className="group cursor-pointer hover:shadow-elevated transition-all duration-300 animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
@@ -245,6 +290,21 @@ export function PastPapers() {
                   <h3 className="text-xl font-semibold mb-2">{subject.name}</h3>
                   <p className="text-sm text-muted-foreground">
                   </p>
+                </CardContent>
+              </Card>
+            ))}
+            {folders.map((folder, index) => (
+              <Card
+                key={folder}
+                className="group cursor-pointer hover:shadow-elevated transition-all duration-300 animate-fade-in"
+                style={{ animationDelay: `${(userSubjects.length + index) * 100}ms` }}
+                onClick={() => handleSubjectClick(folder)}
+              >
+                <CardContent className="p-6">
+                  <div className="w-full h-32 rounded-lg bg-gradient-to-br from-gray-500 to-gray-600 mb-4 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <FolderOpen size={48} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">{folder}</h3>
                 </CardContent>
               </Card>
             ))}
@@ -307,7 +367,14 @@ export function PastPapers() {
 
         {currentView === "papers" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {generateMockPapers(selectedSubject, selectedYear, selectedSession).map((paper, index) => (
+           {[
+              ...generateMockPapers(selectedSubject, selectedYear, selectedSession),
+              ...uploadedPapers.filter(p =>
+                p.name.includes(selectedSubject) &&
+                p.name.includes(selectedYear.toString()) &&
+                p.name.includes(selectedSession)
+              )
+            ].map((paper, index) => (
               <Card 
                 key={paper.id}
                 className="group hover:shadow-elevated transition-all duration-300 animate-fade-in"
@@ -333,13 +400,24 @@ export function PastPapers() {
                     <p>Ready for download as PDF</p>
                   </div>
                   
-                  <Button 
-                    className="w-full group-hover:scale-105 transition-transform duration-200"
-                    onClick={() => handleDownload(paper)}
-                  >
-                    <Download size={16} className="mr-2" />
-                    Download {paper.paper}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 group-hover:scale-105 transition-transform duration-200"
+                      onClick={() => handleDownload(paper)}
+                    >
+                      <Download size={16} className="mr-2" />
+                      Download {paper.paper}
+                    </Button>
+                    {user?.role === 'admin' && uploadedPapers.find(p => p.id === paper.id) && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDeletePaper(paper.id)}
+                      >
+                        ×
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -347,10 +425,17 @@ export function PastPapers() {
         )}
         
         {/* Empty State */}
-        {((currentView === "subjects" && userSubjects.length === 0) ||
+         {((currentView === "subjects" && userSubjects.length + folders.length === 0) ||
           (currentView === "years" && years.length === 0) ||
           (currentView === "sessions" && sessions.length === 0) ||
-          (currentView === "papers" && generateMockPapers(selectedSubject, selectedYear, selectedSession).length === 0)) && (
+          (currentView === "papers" && ([
+            ...generateMockPapers(selectedSubject, selectedYear, selectedSession),
+            ...uploadedPapers.filter(p =>
+              p.name.includes(selectedSubject) &&
+              p.name.includes(selectedYear.toString()) &&
+              p.name.includes(selectedSession)
+            )
+          ]).length === 0)) && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📂</div>
             <h3 className="text-lg font-semibold mb-2">No content available</h3>
@@ -363,6 +448,94 @@ export function PastPapers() {
           </div>
         )}
       </main>
+        {/* Add Folder Dialog */}
+      <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
+        <DialogContent className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>New Folder</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Folder name"
+            value={newFolderName}
+            onChange={e => setNewFolderName(e.target.value)}
+          />
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (newFolderName.trim()) {
+                  setFolders([...folders, newFolderName.trim()]);
+                }
+                setShowFolderDialog(false);
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload PDF Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>Upload PDF</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Paper name"
+            value={uploadName}
+            onChange={e => setUploadName(e.target.value)}
+          />
+          <div
+            className="border-2 border-dashed border-muted rounded-lg p-6 text-center cursor-pointer hover:border-primary/50"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mb-1">
+              {uploadFile ? uploadFile.name : 'Select PDF'}
+            </p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              const file = e.target.files?.[0] || null;
+              setUploadFile(file);
+            }}
+          />
+          {uploadFile && (
+            <embed
+              src={URL.createObjectURL(uploadFile)}
+              type="application/pdf"
+              className="w-full h-64 border"
+            />
+          )}
+          <DialogFooter>
+            <Button
+              onClick={async () => {
+                if (!uploadFile) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const newPaper: PaperFile = {
+                    id: `${Date.now()}`,
+                    name: `${selectedSubject} ${uploadName || uploadFile.name} – ${selectedSession} ${selectedYear}`,
+                    paper: uploadName || uploadFile.name,
+                    downloadUrl: reader.result as string
+                  };
+                  setUploadedPapers([...uploadedPapers, newPaper]);
+                };
+                reader.readAsDataURL(uploadFile);
+                setShowUploadDialog(false);
+              }}
+            >
+              Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
     </div>
   );
 }
